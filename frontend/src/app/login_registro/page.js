@@ -1,7 +1,10 @@
 "use client"
 import Form from "@/components/Form"
+import { useState } from "react"
+
 export default function LoginRegisterPage() {
-    
+    const [seccion, setSeccion] = useState("registro");
+
     const registerInputs = [
         { id: "email", type: "email", placeholder: "email" },
         { id: "user", type: "text", placeholder: "username" },
@@ -14,7 +17,6 @@ export default function LoginRegisterPage() {
         { id: "pass", type: "password", placeholder: "password" }
     ];
 
-    let seccion = "registro";
 
     function HandleRegister(FormData) {
         let registerdata = {
@@ -36,6 +38,9 @@ export default function LoginRegisterPage() {
     }
     return (
         <>
+        
+        
+        <div id="form-container">
             {seccion === "registro" ? (
                 <Form
                     title="Registro de usuarios"
@@ -51,9 +56,12 @@ export default function LoginRegisterPage() {
                     inputs={loginInputs}
                 />
             )}
-            <button onClick={() => (seccion = seccion === "registro" ? "login" : "registro")}>
+            <button onClick={() => setSeccion(seccion === "registro" ? "login" : "registro")}>
                 Cambiar a {seccion === "registro" ? "Iniciar sesión" : "Registro"}
             </button>
+        </div>
+        
+        
         </>
     )
 }
