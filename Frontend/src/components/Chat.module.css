@@ -1,0 +1,63 @@
+.lista {
+	display: flex;
+	flex-direction: column;
+	overflow-y: auto;
+	flex: 1;
+}
+
+.vacio {
+	padding: 20px;
+	color: #777;
+	text-align: center;
+}
+
+.chatItem {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	padding: 10px 14px;
+	cursor: pointer;
+	border-bottom: 1px solid #eee;
+}
+
+.chatItem:hover {
+	background-color: #f5f5f5;
+}
+
+.seleccionado {
+	background-color: #e6f0ff;
+}
+
+.foto {
+	width: 48px;
+	height: 48px;
+	border-radius: 50%;
+	object-fit: cover;
+	flex-shrink: 0;
+	background-color: #ddd;
+}
+
+.info {
+	display: flex;
+	flex-direction: column;
+	overflow: hidden;
+}
+
+.nombre {
+	font-weight: 600;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	display: flex;
+	align-items: center;
+	gap: 6px;
+}
+
+.badgeGrupo {
+	font-size: 0.65rem;
+	font-weight: 500;
+	background-color: #cfd8ff;
+	color: #333;
+	padding: 1px 6px;
+	border-radius: 8px;
+}

@@ -1,0 +1,112 @@
+.container {
+	display: flex;
+	height: 100vh;
+	width: 100%;
+}
+
+.sidebar {
+	width: 320px;
+	flex-shrink: 0;
+	border-right: 1px solid #ddd;
+	display: flex;
+	flex-direction: column;
+	overflow: hidden;
+}
+
+.header {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+	padding: 14px;
+	border-bottom: 1px solid #ddd;
+}
+
+.tituloApp {
+	font-size: 1.1rem;
+	font-weight: 700;
+}
+
+.botones {
+	display: flex;
+	gap: 8px;
+}
+
+.mensaje {
+	padding: 16px;
+	color: #555;
+}
+
+.mensajeError {
+	padding: 16px;
+	color: #c62828;
+}
+
+.chatWindow {
+	flex: 1;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background-color: #fafafa;
+}
+
+.placeholder {
+	text-align: center;
+	color: #555;
+}
+
+/* ---------------- Popups (Nuevo chat / Nuevo grupo) ---------------- */
+
+.botonAbrir {
+	padding: 8px 12px;
+	border: none;
+	border-radius: 6px;
+	background-color: #2f6feb;
+	color: white;
+	cursor: pointer;
+	font-size: 0.85rem;
+}
+
+.botonAbrir:hover {
+	background-color: #2559c4;
+}
+
+.popupContenido {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+	padding: 10px;
+	min-width: 280px;
+}
+
+.input,
+.textarea {
+	padding: 8px;
+	border: 1px solid #ccc;
+	border-radius: 6px;
+	font-size: 0.9rem;
+}
+
+.textarea {
+	min-height: 70px;
+	resize: vertical;
+}
+
+.botonAccion {
+	padding: 8px 12px;
+	border: none;
+	border-radius: 6px;
+	background-color: #2f6feb;
+	color: white;
+	cursor: pointer;
+}
+
+.botonAccion:disabled {
+	opacity: 0.6;
+	cursor: default;
+}
+
+.error {
+	color: #c62828;
+	font-size: 0.85rem;
+	margin: 0;
+}
