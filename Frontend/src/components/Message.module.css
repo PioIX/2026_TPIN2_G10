@@ -1,0 +1,51 @@
+.fila {
+	display: flex;
+	margin-bottom: 8px;
+}
+
+.filaPropia {
+	justify-content: flex-end;
+}
+
+.filaAjena {
+	justify-content: flex-start;
+}
+
+.burbuja {
+	max-width: 60%;
+	padding: 8px 12px;
+	border-radius: 12px;
+	display: flex;
+	flex-direction: column;
+}
+
+.burbujaPropia {
+	background-color: #dcf8c6;
+	border-bottom-right-radius: 2px;
+}
+
+.burbujaAjena {
+	background-color: #ffffff;
+	border: 1px solid #eee;
+	border-bottom-left-radius: 2px;
+}
+
+.autor {
+	font-size: 0.75rem;
+	font-weight: 700;
+	color: #2f6feb;
+	margin-bottom: 2px;
+}
+
+.texto {
+	margin: 0;
+	white-space: pre-wrap;
+	word-break: break-word;
+}
+
+.hora {
+	font-size: 0.65rem;
+	color: #777;
+	align-self: flex-end;
+	margin-top: 2px;
+}

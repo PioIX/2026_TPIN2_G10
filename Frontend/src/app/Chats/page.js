@@ -4,6 +4,8 @@ import { useRouter } from "next/navigation";
 import Popup from "reactjs-popup";
 import "reactjs-popup/dist/index.css";
 import ChatList from "@/components/Chat";
+import Message from "@/components/Message";
+import { useSocket } from "@/hooks/useSocket";
 import styles from "./chats.module.css";
 
 const BACKEND_URL = "http://localhost:4000";
@@ -180,11 +182,15 @@ function NuevoGrupoPopup({ idUsuario, onChatCreado }) {
 /* ------------------------------------------------------------------ */
 export default function ChatsPage() {
 	const router = useRouter();
+	const { socket, isConnected } = useSocket();
 	const [usuario, setUsuario] = useState(null);
 	const [chats, setChats] = useState([]);
 	const [chatSeleccionado, setChatSeleccionado] = useState(null);
+	const [mensajes, setMensajes] = useState([]);
+	const [textoNuevoMensaje, setTextoNuevoMensaje] = useState("");
 	const [cargando, setCargando] = useState(true);
 	const [error, setError] = useState(null);
+	const finMensajesRef = useRef(null);
 
 	useEffect(() => {
 		const usuarioGuardado = localStorage.getItem("usuario");
@@ -219,12 +225,72 @@ export default function ChatsPage() {
 		cargarChats();
 	}, [usuario]);
 
+	// Cada vez que se selecciona un chat distinto: carga su historial desde la BD.
+	useEffect(() => {
+		if (!chatSeleccionado) {
+			setMensajes([]);
+			return;
+		}
+
+		async function cargarHistorial() {
+			try {
+				const response = await fetch(`${BACKEND_URL}/mensajes/${chatSeleccionado.id_chat}`);
+				const data = await response.json();
+				setMensajes(response.ok ? data : []);
+			} catch (err) {
+				console.log(err);
+				setMensajes([]);
+			}
+		}
+
+		cargarHistorial();
+	}, [chatSeleccionado]);
+
+	// Cada vez que se selecciona un chat distinto: se une a esa "room" de Socket.IO
+	// y escucha los mensajes nuevos que lleguen para ESE chat puntual.
+	useEffect(() => {
+		if (!socket || !chatSeleccionado) return;
+
+		socket.emit("unirseChat", chatSeleccionado.id_chat);
+
+		function handleNuevoMensaje(mensaje) {
+			if (mensaje.id_chat === chatSeleccionado.id_chat) {
+				setMensajes((prev) => [...prev, mensaje]);
+			}
+		}
+
+		socket.on("nuevoMensaje", handleNuevoMensaje);
+
+		return () => {
+			socket.emit("salirChat", chatSeleccionado.id_chat);
+			socket.off("nuevoMensaje", handleNuevoMensaje);
+		};
+	}, [socket, chatSeleccionado]);
+
+	// Scroll automático al último mensaje
+	useEffect(() => {
+		finMensajesRef.current?.scrollIntoView({ behavior: "smooth" });
+	}, [mensajes]);
+
 	function handleChatCreado(nuevoChat) {
 		setChats((prev) => {
 			const yaExiste = prev.some((c) => c.id_chat === nuevoChat.id_chat);
 			return yaExiste ? prev : [nuevoChat, ...prev];
 		});
 		setChatSeleccionado(nuevoChat);
+	}
+
+	function handleEnviarMensaje(e) {
+		e.preventDefault();
+		if (!textoNuevoMensaje.trim() || !chatSeleccionado || !socket) return;
+
+		socket.emit("enviarMensaje", {
+			id_chat: chatSeleccionado.id_chat,
+			id_usuario: usuario.id_usuario,
+			texto_contenido: textoNuevoMensaje.trim(),
+		});
+
+		setTextoNuevoMensaje("");
 	}
 
 	if (!usuario) return null;
@@ -254,11 +320,39 @@ export default function ChatsPage() {
 
 			<main className={styles.chatWindow}>
 				{chatSeleccionado ? (
-					// TODO (Ejercicio 5): acá va el historial de mensajes + input para
-					// enviar mensajes en tiempo real con Socket.IO, usando chatSeleccionado.id_chat.
-					<div className={styles.placeholder}>
-						<h2>{chatSeleccionado.nombre}</h2>
-						<p>Acá se va a mostrar la conversación (Ejercicio 5).</p>
+					<div className={styles.conversacion}>
+						<div className={styles.encabezadoChat}>
+							<img
+								className={styles.fotoEncabezado}
+								src={chatSeleccionado.foto || "/default-avatar.png"}
+								alt={chatSeleccionado.nombre}
+								onError={(e) => { e.currentTarget.src = "/default-avatar.png"; }}
+							/>
+							<h2 className={styles.nombreEncabezado}>{chatSeleccionado.nombre}</h2>
+							{!isConnected && <span className={styles.avisoDesconectado}>Reconectando...</span>}
+						</div>
+
+						<div className={styles.listaMensajes}>
+							{mensajes.map((mensaje) => (
+								<Message
+									key={mensaje.id_mensaje}
+									mensaje={mensaje}
+									esPropio={mensaje.id_usuario === usuario.id_usuario}
+								/>
+							))}
+							<div ref={finMensajesRef} />
+						</div>
+
+						<form className={styles.formEnvio} onSubmit={handleEnviarMensaje}>
+							<input
+								type="text"
+								className={styles.inputMensaje}
+								placeholder="Escribí un mensaje..."
+								value={textoNuevoMensaje}
+								onChange={(e) => setTextoNuevoMensaje(e.target.value)}
+							/>
+							<button type="submit" className={styles.botonEnviar}>Enviar</button>
+						</form>
 					</div>
 				) : (
 					<div className={styles.placeholder}>
