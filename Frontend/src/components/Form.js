@@ -10,7 +10,7 @@ export default function Form({ title, buttonText, onButtonClick, inputs = [] }) 
                     <div>
                         <h3>Ingrese el {inputProps.name}</h3>
                         <input
-                        //crear array de objetos
+                        // se encarga de crear arrays para los objetos
                         key={inputProps.id || index}
                         type={inputProps.type || "text"}
                         name={inputProps.name}
