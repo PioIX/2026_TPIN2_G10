@@ -6,7 +6,7 @@ export default function ChatList({ chats, chatSeleccionadoId, onSelectChat }) {
 		return <p className={styles.vacio}>Todavía no tenés chats. Creá uno nuevo.</p>;
 	}
  
-	return (
+	return (                   
 		<div className={styles.lista}>
 			{chats.map((chat) => (
 				<ChatItem

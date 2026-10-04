@@ -2,13 +2,14 @@
 import styles from "./Chat.module.css";
 
 const FOTO_POR_DEFECTO = "/default-avatar.png";
- 
+
 export function ChatItem({ chat, seleccionado, onClick }) {
 	return (
 		<div
 			className={`${styles.chatItem} ${seleccionado ? styles.seleccionado : ""}`}
 			onClick={() => onClick(chat)}
 		>
+			{/* Si no hay foto o falla la carga, se usa la foto por defecto */}
 			<img
 				className={styles.foto}
 				src={chat.foto || FOTO_POR_DEFECTO}
@@ -24,4 +25,3 @@ export function ChatItem({ chat, seleccionado, onClick }) {
 		</div>
 	);
 }
- 

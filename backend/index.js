@@ -1,23 +1,17 @@
-/**
- * ================================================================
- * PIO CHAT - BACKEND (index.js)
- * ================================================================
- * Puerto: 4000
- */
-
 require("dotenv").config();
 
 const express = require("express");
 const cors = require("cors");
 const http = require("http");
 const { Server } = require("socket.io");
-const mysql2 = require("mysql2"); // se usa solo para poder formatear/escapar queries de forma segura
+const mysql2 = require("mysql2"); // se usa solo para formatear/escapar queries de forma segura
 
 const { realizarQuery } = require("./modulos/mysql");
 
 const PORT = process.env.PORT || 4000;
 
 const app = express();
+
 app.use(cors());
 app.use(express.json());
 
@@ -28,31 +22,20 @@ const io = new Server(server, {
 	},
 });
 
-/**
- * -----------------------------------------------------------
- * Helper para poder usar "?" como placeholders en las queries,
- * ya que "realizarQuery" solo acepta un string ya armado.
- * mysql2.format() arma el string reemplazando los "?" por los
- * valores, escapándolos correctamente (evita inyección SQL).
- * -----------------------------------------------------------
- */
+// Permite usar "?" como placeholders: realizarQuery solo acepta un string ya armado.
 async function query(sql, params = []) {
 	const queryString = mysql2.format(sql, params);
 	return await realizarQuery(queryString);
 }
 
-/* ================================================================
- *  RUTA DE PRUEBA
- * ================================================================ */
 app.get("/", (req, res) => {
 	res.json({ mensaje: "entraste pa" });
 });
 
 /* ================================================================
- *  AUTENTICACIÓN: REGISTRO Y LOGIN
+ *  AUTENTICACIÓN
  * ================================================================ */
 
-// POST /register
 app.post("/register", async (req, res) => {
 	try {
 		const { usuario, email, contraseña, foto_perfil } = req.body;
@@ -61,7 +44,6 @@ app.post("/register", async (req, res) => {
 			return res.status(400).json({ error: "Faltan datos obligatorios (usuario, email, contraseña)." });
 		}
 
-		// Verificar que el email no esté ya registrado
 		const existentes = await query("SELECT id_usuario FROM Usuarios WHERE email = ?", [email]);
 		if (existentes.length > 0) {
 			return res.status(409).json({ error: "Ya existe un usuario registrado con ese email." });
@@ -86,7 +68,6 @@ app.post("/register", async (req, res) => {
 	}
 });
 
-// POST /login
 app.post("/login", async (req, res) => {
 	try {
 		const { email, contraseña } = req.body;
@@ -115,12 +96,11 @@ app.post("/login", async (req, res) => {
  *  CHATS
  * ================================================================ */
 
-// GET /chats/:id_usuario  -> listado de chats del usuario logueado
+// Listado de chats del usuario, incluyendo la foto del contacto
 app.get("/chats/:id_usuario", async (req, res) => {
 	try {
 		const { id_usuario } = req.params;
 
-		// Chats en los que participa el usuario
 		const chats = await query(
 			`SELECT c.id_chat, c.nombre_chat, c.fecha_creacion, c.foto_chat
 			 FROM Participantes p
@@ -130,12 +110,9 @@ app.get("/chats/:id_usuario", async (req, res) => {
 			[id_usuario]
 		);
 
-		// Para los chats individuales (nombre_chat NULL) hay que buscar
-		// los datos del OTRO participante para mostrar su nombre y foto.
 		const chatsCompletos = await Promise.all(
 			chats.map(async (chat) => {
 				if (chat.nombre_chat) {
-					// Chat grupal: se muestra tal cual
 					return {
 						id_chat: chat.id_chat,
 						es_grupal: true,
@@ -145,7 +122,7 @@ app.get("/chats/:id_usuario", async (req, res) => {
 					};
 				}
 
-				// Chat individual: buscar al otro participante
+				// Chat individual: se busca al otro participante para mostrar su nombre y foto
 				const otro = await query(
 					`SELECT u.id_usuario, u.usuario, u.foto_perfil
 					 FROM Participantes p
@@ -175,7 +152,7 @@ app.get("/chats/:id_usuario", async (req, res) => {
 	}
 });
 
-// POST /chats -> crear (o reutilizar) un chat individual a partir del mail de otro usuario
+// Crear (o reutilizar) un chat individual a partir del mail de otro usuario
 app.post("/chats", async (req, res) => {
 	try {
 		const { id_usuario, email } = req.body;
@@ -196,7 +173,7 @@ app.post("/chats", async (req, res) => {
 			return res.status(400).json({ error: "No podés crear un chat con vos mismo." });
 		}
 
-		// Ver si ya existe un chat individual entre ambos usuarios
+		// Evita chats duplicados entre las mismas dos personas
 		const chatExistente = await query(
 			`SELECT c.id_chat
 			 FROM Participantes p1
@@ -237,7 +214,7 @@ app.post("/chats", async (req, res) => {
 	}
 });
 
-// POST /chats/grupo -> crear un chat grupal a partir de múltiples mails
+// Crear un chat grupal a partir de múltiples mails
 app.post("/chats/grupo", async (req, res) => {
 	try {
 		const { id_usuario, nombre_chat, foto_chat, emails } = req.body;
@@ -246,7 +223,7 @@ app.post("/chats/grupo", async (req, res) => {
 			return res.status(400).json({ error: "Faltan datos obligatorios (id_usuario, nombre_chat, emails)." });
 		}
 
-		// Validar que todos los emails existan ANTES de crear nada
+		// Se validan todos los mails antes de crear nada, para no dejar un grupo a medias
 		const idsParticipantes = [];
 		for (const email of emails) {
 			const usuarios = await query("SELECT id_usuario FROM Usuarios WHERE email = ?", [email]);
@@ -256,14 +233,13 @@ app.post("/chats/grupo", async (req, res) => {
 			idsParticipantes.push(usuarios[0].id_usuario);
 		}
 
-		// Crear el chat grupal
 		const nuevoChat = await query(
 			"INSERT INTO Chats (nombre_chat, fecha_creacion, foto_chat) VALUES (?, NOW(), ?)",
 			[nombre_chat, foto_chat || null]
 		);
 		const idChat = nuevoChat.insertId;
 
-		// Agregar al creador + a todos los participantes validados (sin duplicar al creador)
+		// Creador + participantes, sin duplicar al creador
 		const todosLosIds = [...new Set([Number(id_usuario), ...idsParticipantes.map(Number)])];
 
 		const valoresParticipantes = todosLosIds.map((id) => [idChat, id, new Date()]);
@@ -291,7 +267,6 @@ app.post("/chats/grupo", async (req, res) => {
  *  MENSAJES
  * ================================================================ */
 
-// GET /mensajes/:id_chat -> historial de mensajes de un chat
 app.get("/mensajes/:id_chat", async (req, res) => {
 	try {
 		const { id_chat } = req.params;
@@ -314,31 +289,28 @@ app.get("/mensajes/:id_chat", async (req, res) => {
 });
 
 /* ================================================================
- *  SOCKET.IO -> comunicación en tiempo real dentro de un chat
+ *  SOCKET.IO
  * ================================================================
- * Eventos que espera el frontend:
- *   - "unirseChat"  (id_chat)                -> se une a la room del chat
- *   - "salirChat"   (id_chat)                -> deja la room del chat
- *   - "enviarMensaje" ({id_chat, id_usuario, texto_contenido})
+ * Eventos que espera el backend:
+ *   - "unirseChat"    (id_chat)
+ *   - "salirChat"     (id_chat)
+ *   - "enviarMensaje" ({ id_chat, id_usuario, texto_contenido })
  *
  * Eventos que emite el backend:
- *   - "nuevoMensaje" (mensaje) -> a todos los conectados a esa room
- *   - "errorMensaje" (mensaje de error) -> solo al que envió
+ *   - "nuevoMensaje" (mensaje)       -> a toda la room del chat
+ *   - "errorMensaje" (mensaje error) -> solo a quien envió
  * ================================================================ */
 io.on("connection", (socket) => {
 	console.log(`Cliente conectado: ${socket.id}`);
 
-	// El cliente se une a la "room" del chat que tiene abierto
 	socket.on("unirseChat", (id_chat) => {
 		socket.join(`chat_${id_chat}`);
 	});
 
-	// El cliente deja el chat que tenía abierto (por ej. al cerrar la conversación)
 	socket.on("salirChat", (id_chat) => {
 		socket.leave(`chat_${id_chat}`);
 	});
 
-	// Envío de un mensaje nuevo
 	socket.on("enviarMensaje", async ({ id_chat, id_usuario, texto_contenido }) => {
 		try {
 			if (!id_chat || !id_usuario || !texto_contenido || !texto_contenido.trim()) {
@@ -353,7 +325,6 @@ io.on("connection", (socket) => {
 				[id_chat, id_usuario, texto_contenido, fechaEnvio]
 			);
 
-			// Se busca el nombre del usuario para armar el mensaje completo
 			const usuarioRows = await query("SELECT usuario, foto_perfil FROM Usuarios WHERE id_usuario = ?", [id_usuario]);
 
 			const mensajeCompleto = {
@@ -366,8 +337,7 @@ io.on("connection", (socket) => {
 				fecha_envio: fechaEnvio,
 			};
 
-			// Se emite a TODOS los participantes conectados a esa room (incluido quien lo envió,
-			// así el mensaje se muestra igual en todos los clientes con ese chat abierto)
+			// Se emite a toda la room, incluido quien lo envió
 			io.to(`chat_${id_chat}`).emit("nuevoMensaje", mensajeCompleto);
 		} catch (error) {
 			console.log(error);

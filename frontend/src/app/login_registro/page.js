@@ -1,14 +1,15 @@
 "use client"
+
 import Form from "@/components/Form"
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 
-// Ajustar esta URL si el backend corre en otro host/puerto,
-// o mejor: usar process.env.NEXT_PUBLIC_BACKEND_URL desde un .env.local del frontend.
+// Idealmente usar process.env.NEXT_PUBLIC_BACKEND_URL desde un .env.local
 const BACKEND_URL = "http://localhost:4000";
 
 export default function LoginRegisterPage() {
     const router = useRouter();
+
     const [seccion, setSeccion] = useState("registro");
     const [error, setError] = useState(null);
 
@@ -24,8 +25,7 @@ export default function LoginRegisterPage() {
         { id: "pass", type: "password", placeholder: "password" }
     ];
 
-    // Guarda al usuario logueado/registrado para reenviarlo en las próximas requests
-    // (enfoque simple sin JWT: el back devuelve el usuario y acá lo persistimos).
+    // Guarda al usuario logueado/registrado (sin JWT: el back lo devuelve y acá se persiste)
     function guardarUsuario(usuario) {
         localStorage.setItem("usuario", JSON.stringify(usuario));
     }
@@ -37,14 +37,10 @@ export default function LoginRegisterPage() {
             email: FormData.get("email"),
             username: FormData.get("user"),
             password: FormData.get("pass"),
-            // TODO: FormData.get("image") devuelve un File (o lo que arme el componente Form
-            // para el input tipo "image"). El endpoint POST /register del backend espera
-            // "foto_perfil" como un STRING (por ejemplo, base64 o una URL ya subida a algún
-            // lado), no un File crudo. Falta decidir e implementar acá:
-            //   a) convertir el File a base64 (FileReader) antes de mandarlo, o
-            //   b) subirlo aparte (multipart/form-data) a un endpoint que devuelva una URL,
-            //      y mandar esa URL como foto_perfil.
-            // Por ahora se manda tal cual llega (probablemente no funcione hasta resolver esto).
+            // TODO: FormData.get("image") devuelve un File, pero el backend espera
+            // "foto_perfil" como STRING (base64 o URL). Falta resolver:
+            //   a) convertir el File a base64 (FileReader), o
+            //   b) subirlo aparte y mandar la URL resultante.
             userimage: FormData.get("image")
         };
 

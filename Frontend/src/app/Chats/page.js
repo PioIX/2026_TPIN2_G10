@@ -1,8 +1,10 @@
 "use client"
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+
 import Popup from "reactjs-popup";
 import "reactjs-popup/dist/index.css";
+
 import ChatList from "@/components/Chat";
 import Message from "@/components/Message";
 import { useSocket } from "@/hooks/useSocket";
@@ -85,7 +87,7 @@ function NuevoGrupoPopup({ idUsuario, onChatCreado }) {
 	const popupRef = useRef();
 	const [nombreChat, setNombreChat] = useState("");
 	const [emailsTexto, setEmailsTexto] = useState("");
-	const [foto, setFoto] = useState(null); // ver TODO más abajo
+	const [foto, setFoto] = useState(null);
 	const [error, setError] = useState(null);
 	const [cargando, setCargando] = useState(false);
 
@@ -118,9 +120,9 @@ function NuevoGrupoPopup({ idUsuario, onChatCreado }) {
 				body: JSON.stringify({
 					id_usuario: idUsuario,
 					nombre_chat: nombreChat.trim(),
-					// TODO: igual que con la foto de perfil del registro, el backend espera
-					// "foto_chat" como STRING (base64 o URL), no el File crudo que devuelve
-					// el <input type="file">. Falta resolver la conversión/subida acá.
+					// TODO: el backend espera "foto_chat" como STRING (base64 o URL), no el
+					// File crudo del <input type="file">. JSON.stringify de un File da {},
+					// así que la foto no llega. Falta resolver la conversión/subida.
 					foto_chat: foto,
 					emails,
 				}),
@@ -182,6 +184,7 @@ function NuevoGrupoPopup({ idUsuario, onChatCreado }) {
 /* ------------------------------------------------------------------ */
 export default function ChatsPage() {
 	const router = useRouter();
+
 	const { socket, isConnected } = useSocket();
 	const [usuario, setUsuario] = useState(null);
 	const [chats, setChats] = useState([]);
@@ -192,6 +195,7 @@ export default function ChatsPage() {
 	const [error, setError] = useState(null);
 	const finMensajesRef = useRef(null);
 
+	// Lee al usuario guardado en el login; si no hay, vuelve al login/registro
 	useEffect(() => {
 		const usuarioGuardado = localStorage.getItem("usuario");
 		if (!usuarioGuardado) {
@@ -201,6 +205,7 @@ export default function ChatsPage() {
 		setUsuario(JSON.parse(usuarioGuardado));
 	}, [router]);
 
+	// Carga la lista de chats del usuario desde el backend
 	useEffect(() => {
 		if (!usuario) return;
 
@@ -225,7 +230,7 @@ export default function ChatsPage() {
 		cargarChats();
 	}, [usuario]);
 
-	// Cada vez que se selecciona un chat distinto: carga su historial desde la BD.
+	// Carga el historial cada vez que se selecciona un chat distinto
 	useEffect(() => {
 		if (!chatSeleccionado) {
 			setMensajes([]);
@@ -246,8 +251,7 @@ export default function ChatsPage() {
 		cargarHistorial();
 	}, [chatSeleccionado]);
 
-	// Cada vez que se selecciona un chat distinto: se une a esa "room" de Socket.IO
-	// y escucha los mensajes nuevos que lleguen para ESE chat puntual.
+	// Se une a la room del chat seleccionado y escucha sus mensajes nuevos
 	useEffect(() => {
 		if (!socket || !chatSeleccionado) return;
 
@@ -272,6 +276,7 @@ export default function ChatsPage() {
 		finMensajesRef.current?.scrollIntoView({ behavior: "smooth" });
 	}, [mensajes]);
 
+	// Agrega el chat nuevo a la lista (sin duplicar) y lo abre
 	function handleChatCreado(nuevoChat) {
 		setChats((prev) => {
 			const yaExiste = prev.some((c) => c.id_chat === nuevoChat.id_chat);
@@ -322,6 +327,7 @@ export default function ChatsPage() {
 				{chatSeleccionado ? (
 					<div className={styles.conversacion}>
 						<div className={styles.encabezadoChat}>
+							{/* /default-avatar.png tiene que existir en frontend/public */}
 							<img
 								className={styles.fotoEncabezado}
 								src={chatSeleccionado.foto || "/default-avatar.png"}
